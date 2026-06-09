@@ -9,8 +9,8 @@ environment:
   # flutter: ">=3.0.0"
 
 dependencies:
-  flutter:
-    sdk: flutter
+  # flutter:
+  #   sdk: flutter
   sqflite: ^2.3.0
   path: ^1.8.3
   quds_db_interface: ^0.0.1
