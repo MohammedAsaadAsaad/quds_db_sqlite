@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="quds_db_sqlite API docs, for the Dart programming language.">
+  <title>quds_db_sqlite - Dart API docs</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="static-assets/github.css?v1">
+  <link rel="stylesheet" href="static-assets/styles.css?v1">
+  <link rel="icon" href="static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="https://github.com/my_org/quds_db_sqlite">quds_db_sqlite package</a></li>
+  </ol>
+  <div class="self-name">quds_db_sqlite</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div id="dartdoc-main-content" class="main-content">
+      
+<section class="desc markdown">
+  <h1 id="quds-db-sqlite-">Quds DB SQLite ⚡️</h1>
+<p>A high-performance, strictly-typed, and fully automated SQLite implementation for the <code>quds_db_interface</code>.</p>
+<p>Forget writing raw SQL strings, handling manual schema migrations, or worrying about passing transaction contexts. Quds DB SQLite handles it all automatically using a sophisticated "No-SQL" Dart approach.</p>
+<h2 id="-key-features">🌟 Key Features</h2>
+<ul>
+<li><strong>Strict Type Safety</strong>: All database operations (including queries, filtering, and ordering) use strongly-typed closures.</li>
+<li><strong>Automated Migrations</strong>: Automatically detects new fields in your <code>DbModel</code> and executes <code>ALTER TABLE</code> to add them.</li>
+<li><strong>Auto-Indexing</strong>: Flag fields as <code>isIndexed</code>, and the provider will automatically generate <code>CREATE INDEX</code> queries under the hood.</li>
+<li><strong>Magical Transactions</strong>: Execute block operations in a Zone-based transaction without ever passing a <code>Transaction</code> object to your provider methods!</li>
+<li><strong>Native Pagination</strong>: Easily query large data sets with <code>loadAllEntriesByPaging</code>.</li>
+<li><strong>Complex Queries</strong>: Fully supports <code>INNER JOIN</code>, <code>LEFT JOIN</code>, and aggregates (<code>SUM</code>, <code>MAX</code>, <code>MIN</code>, <code>AVG</code>, <code>COUNT</code>).</li>
+</ul>
+<hr>
+<h2 id="-setup--initialization">🛠 Setup &amp; Initialization</h2>
+<pre class="language-dart"><code class="language-dart">import 'package:quds_db_sqlite/quds_db_sqlite.dart';
+
+// 1. Setup the Settings
+final adapter = SqliteDatabaseAdapter();
+await adapter.initialize(SqliteDatabaseSettings(
+  dbName: 'my_database.db',
+  version: 1,
+));
+
+final connection = await adapter.getConnection('my_database.db');
+
+// 2. Initialize your Provider (Automatically Migrates &amp; Indexes!)
+final tasksProvider = TaskProvider(connection, () =&gt; TaskModel(), 'Tasks');
+await tasksProvider.initialize();
+</code></pre>
+<hr>
+<h2 id="-defining-models">📝 Defining Models</h2>
+<p>Your models should extend <code>StandardDbModel</code> and define their fields statically to allow the provider to map rows correctly.</p>
+<pre class="language-dart"><code class="language-dart">class TaskModel extends StandardDbModel {
+  final title = StringField(columnName: 'title', notNull: true);
+  final isCompleted = BoolField(columnName: 'isCompleted', defaultValue: false);
+  final priority = IntField(columnName: 'priority', defaultValue: 0, isIndexed: true); // Auto-Indexed!
+  final tags = JsonField(columnName: 'tags'); // Supports native JSON encoding/decoding
+
+  @override
+  List&lt;FieldDefinition&gt;? getFields() =&gt; [title, isCompleted, priority, tags];
+}
+</code></pre>
+<hr>
+<h2 id="-pure-dart-queries-no-sql">🔎 Pure-Dart Queries (No SQL)</h2>
+<p>With strict closure typing, your queries are robust and immune to SQL-injection syntax errors.</p>
+<pre class="language-dart"><code class="language-dart">// Fetch all pending high-priority tasks
+final urgentTasks = await tasksProvider.select(
+  where: (t) =&gt; ConditionGroup(conditions: [
+    t.isCompleted.equals(false),
+    t.priority.greaterThan(5),
+  ]),
+  orderBy: (t) =&gt; [t.priority.descOrder],
+  limit: 10,
+);
+
+// Pagination
+final page = await tasksProvider.loadAllEntriesByPaging(
+  pageQuery: DataPageQuery(page: 1, resultsPerPage: 20),
+  orderBy: (t) =&gt; [t.id.ascOrder],
+);
+print('Total Pages: ${page.pages}');
+</code></pre>
+<hr>
+<h2 id="-zone-based-transactions">🪄 Zone-Based Transactions</h2>
+<p>No more passing <code>transaction</code> objects down your widget tree or provider architecture!</p>
+<p>Quds DB SQLite utilizes <code>runZoned</code> to implicitly inject the SQLite transaction context. Just wrap your operations in <code>.transaction()</code>, and <strong>all providers</strong> will magically utilize the transaction.</p>
+<pre class="language-dart"><code class="language-dart">try {
+  await connection.transaction(() async {
+    final t1 = TaskModel()..title.value = 'Bulk Task 1';
+    final t2 = TaskModel()..title.value = 'Bulk Task 2';
+
+    // These natively execute within the transaction context!
+    await tasksProvider.insertEntry(t1);
+    await tasksProvider.insertEntry(t2);
+    
+    // If an error is thrown here, BOTH inserts are automatically rolled back!
+  });
+} catch (e) {
+  print('Transaction Failed &amp; Rolled Back!');
+}
+</code></pre>
+</section>
+
+
+      <section class="summary">
+          <h2>Libraries</h2>
+        <dl>
+          <dt id="quds_db_sqlite">
+  <span class="name"><a href="quds_db_sqlite/">quds_db_sqlite</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+        </dl>
+      </section>
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="https://github.com/my_org/quds_db_sqlite">quds_db_sqlite package</a></li>
+</ol>
+
+    <h5 class="hidden-xs"><span class="package-name">quds_db_sqlite</span> <span class="package-kind">package</span></h5>
+    <ol>
+      <li class="section-title">Libraries</li>
+      <li><a href="quds_db_sqlite/">quds_db_sqlite</a></li>
+</ol>
+
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div>
+</main>
+<footer>
+  <span class="no-break">
+    quds_db_sqlite
+      0.0.1
+  </span>
+  
+</footer>
+
+
+<script src="static-assets/highlight.pack.js?v1"></script>
+<script src="static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+
