@@ -6,3 +6,7 @@
 ## 0.0.2
 
 - Removed flutter as a dependency from pubspec
+
+## 0.0.3
+
+- Updated homepage

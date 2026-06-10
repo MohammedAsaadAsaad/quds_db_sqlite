@@ -1,8 +1,9 @@
 name: quds_db_sqlite
 description: SQLite adapter for quds_db_interface package. Provides complete SQL implementation using sqflite for Flutter and sqflite_common_ffi for desktop testing.
 # publish_to: none
-version: 0.0.2
-homepage: https://github.com/my_org/quds_db_sqlite
+version: 0.0.3
+homepage: https://github.com/MohammedAsaadAsaad/quds_db_sqlite
+repository: https://github.com/MohammedAsaadAsaad/quds_db_sqlite
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -18,7 +19,6 @@ dependencies:
   #   path: ../quds_db_interface
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
+  test: ^1.30.0
   sqflite_common_ffi: ^2.3.0
   lints: ^3.0.0
