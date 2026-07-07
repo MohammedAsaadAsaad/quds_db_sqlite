@@ -10,3 +10,11 @@
 ## 0.0.3
 
 - Updated homepage
+
+## 0.0.4
+
+- remove unused files and clean up project structure
+
+## 0.0.5
+
+- Upgraded the dependencies.
