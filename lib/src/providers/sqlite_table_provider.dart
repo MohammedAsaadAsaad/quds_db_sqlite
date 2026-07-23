@@ -46,6 +46,29 @@ class SqliteTableProvider<T extends DbModel>
   String get tableName => _tableName;
 
   @override
+  Future<void> ensureField(FieldDefinition field, {bool safe = false}) async {
+    try {
+      await connection.migration.ensureField(tableName, field);
+    } catch (e) {
+      if (safe) {
+        // ignore: avoid_print
+        print('Migration warning ($tableName.${field.columnName}): $e');
+      } else {
+        rethrow;
+      }
+    }
+  }
+
+  @override
+  Future<void> ensureBooleanNotNull(BoolField field, {bool safe = false}) async {
+    await connection.migration.ensureBooleanNotNull(
+      tableName,
+      field,
+      safe: safe,
+    );
+  }
+
+  @override
   Future<void> initialize() async {
     final fields = _cachedModelInstance.getAllFields();
     if (fields.isEmpty) return;
@@ -56,29 +79,8 @@ class SqliteTableProvider<T extends DbModel>
 
     await connection.execute(sql);
 
-    // Check for missing columns (Auto-Migration)
-    final tableInfo = await connection.query('PRAGMA table_info($tableName)');
-    final existingColumns =
-        tableInfo.map((row) => row['name'] as String).toList();
-
     for (var field in fields) {
-      if (field.columnName != null &&
-          !existingColumns.contains(field.columnName)) {
-        await connection.execute(
-          'ALTER TABLE $tableName ADD COLUMN ${field.columnDefinition}',
-        );
-      }
-    }
-
-    // Create indices automatically
-    for (var field in fields) {
-      if (field is FieldWithValue &&
-          field.isIndexed &&
-          field.columnName != null) {
-        await connection.execute(
-          'CREATE INDEX IF NOT EXISTS idx_${tableName}_${field.columnName} ON $tableName (${field.columnName})',
-        );
-      }
+      await connection.migration.ensureField(tableName, field);
     }
   }
 

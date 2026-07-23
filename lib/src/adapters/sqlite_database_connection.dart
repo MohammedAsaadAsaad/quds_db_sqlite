@@ -1,11 +1,25 @@
 import 'dart:async';
 import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:quds_db_interface/quds_db_interface.dart';
+import '../migration/sqlite_migration_context.dart';
+import '../schema/sqlite_schema_inspector.dart';
+import '../schema/sqlite_schema_migrator.dart';
 
 class SqliteDatabaseConnection implements DatabaseConnection {
   final sqflite.DatabaseExecutor _baseExecutor;
   final bool _isTransaction;
   bool _isOpen = true;
+
+  @override
+  late final SqliteSchemaInspector schema = SqliteSchemaInspector(this);
+  @override
+  late final SqliteSchemaMigrator migration = SqliteSchemaMigrator(this);
+  @override
+  late final MigrationRunner migrations = SchemaMigrationRunner(
+    connection: this,
+    contextFactory: () => SqliteMigrationContext(this),
+    ensureJournalTable: SqliteMigrationContext.ensureJournalTable,
+  );
 
   SqliteDatabaseConnection(this._baseExecutor, {bool isTransaction = false})
       : _isTransaction = isTransaction;

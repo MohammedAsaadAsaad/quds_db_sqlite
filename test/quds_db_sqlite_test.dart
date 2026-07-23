@@ -219,4 +219,37 @@ void main() {
       expect(await provider.count(), equals(2));
     });
   });
+
+  group('Schema API', () {
+    test('columnExists and columnNativeType via Dart API', () async {
+      expect(await connection.schema.tableExists('Notes'), isTrue);
+      expect(await connection.schema.columnExists('Notes', 'title'), isTrue);
+      expect(await connection.schema.columnExists('Notes', 'missing'), isFalse);
+      expect(
+        await connection.schema.columnNativeType('Notes', 'title'),
+        isNotNull,
+      );
+    });
+
+    test('ensureBooleanNotNull migrates legacy integer column', () async {
+      await connection.execute(
+        'CREATE TABLE IF NOT EXISTS bool_test (legacy_flag INTEGER)',
+      );
+      await connection.execute(
+        "INSERT INTO bool_test (legacy_flag) VALUES (1), (0), (NULL)",
+      );
+
+      final legacyFlag = BoolField(
+        columnName: 'legacy_flag',
+        defaultValue: false,
+        notNull: true,
+      );
+
+      await connection.migration.ensureBooleanNotNull('bool_test', legacyFlag);
+
+      expect(await connection.schema.columnExists('bool_test', 'legacy_flag'), isTrue);
+      final rows = await connection.query('SELECT legacy_flag FROM bool_test');
+      expect(rows.every((r) => r['legacy_flag'] == 0 || r['legacy_flag'] == 1), isTrue);
+    });
+  });
 }
